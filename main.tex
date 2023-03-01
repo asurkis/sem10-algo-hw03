@@ -1,0 +1,64 @@
+\documentclass{article}
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{fullpage}
+\usepackage{indentfirst}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{float}
+\usepackage{tikz}
+
+\usepackage[outputdir=out]{minted}
+%\usepackage{algorithmicx}
+%\usepackage{algpseudocodex}
+%\usepackage{algorithm2e}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{array}
+
+%\setlength{\parindent}{1.25cm}
+%\renewcommand{\baselinestretch}{1.5}
+\setlength{\parskip}{6pt}
+
+\begin{document}
+    \theoremstyle{definition}
+    \newtheorem*{definition}{Определение}
+    \newtheorem{theorem}{Теорема}
+    \newtheorem{statement}{Утверждение}
+    \newtheorem{lemma}{Лемма}
+
+    \newcommand{\N}{\mathbb{N}}
+    \newcommand{\R}{\mathbb{R}_{>0}}
+    \renewcommand{\O}{\mathcal{O}}
+    \renewcommand{\o}{o}
+    \newcommand{\Const}{\mathit{Const}}
+    \newcommand{\Mod}{~\text{mod}~}
+    \newcommand{\thus}{\Rightarrow}
+
+    \newcommand{\paren}[1]{\left ( #1 \right )}
+    \newcommand{\brackets}[1]{\left [ #1 \right ]}
+    \newcommand{\braces}[1]{\left \{ #1 \right \}}
+    \newcommand{\floor}[1]{\left \lfloor #1 \right \rfloor}
+    \newcommand{\ceil}[1]{\left \lceil #1 \right \rceil}
+    \newcommand{\abs}[1]{\left | #1 \right |}
+
+    \hfill
+    \begin{tabular}{ll}
+        Студент: & Антон Суркис \\
+        Группа:  & M4141        \\
+        Дата:    & \today       \\
+    \end{tabular}
+    \hrule
+
+    %\input{task01} \clearpage % Кравченко и Крыштапович
+    \input{task02} \clearpage
+    %\input{task03} \clearpage % Кравченко и Крыштапович
+    \input{task04} \clearpage
+    \input{task05} \clearpage
+    \input{task06} \clearpage
+    \input{task07} \clearpage
+\end{document}

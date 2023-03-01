@@ -1,0 +1,14 @@
+\section{Задача 7 ,,\texttt{C-c-c-combo!}``}
+
+Напишите на \texttt{Haskell} реализацию персистентной структуры,
+умеющей отвечать на запросы:
+\begin{itemize}
+    \item \texttt{insert(i, x)}, $0 \le i \le L$ ($L$ --- текущая длина) --- вставить $x$ в позицию $i$. Все элементы в $i$ и правее сдвигаются на $1$ вправо.
+    \item \texttt{delete(i)} --- удалить элемент из позиции $i$. Все правее сдвигается на $1$ влево.
+    \item \texttt{add(l, r, value)} --- добавить $value$ ко всем $x$, для которых $l \le i \le r$
+    \item \texttt{set(l, r, value)} --- установить в $value$ все $x$, для которых $l \le i \le r$
+    \item \texttt{sum(l, r)} --- сумма всех $x$, для которых $l \le i \le r$
+    \item \texttt{reverse(l, r)} --- изменить порядок всех $x$, для которых $l \le i \le r$, на обратный
+\end{itemize}
+
+В начальный момент структура пустая. Время работы на запрос $\O(\log{L})$, online.
