@@ -1,10 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Lib (Tree, insert, delete, add, set, sum, reverse) where
+module Lib {-(Tree, insert, delete, add, set, sum, reverse)-} where
 
 import           Control.Lens hiding (set)
 import           Prelude      hiding (length, reverse, sum)
 
 data PendingChange = Add Int | Set Int
+  deriving (Eq, Show)
 
 data Node = Node
   { _nx          :: Int,
@@ -16,6 +17,7 @@ data Node = Node
     _nLeft       :: Maybe Node,
     _nRight      :: Maybe Node
   }
+  deriving (Eq, Show)
 makeLenses ''Node
 
 type Tree = Maybe Node
@@ -44,15 +46,10 @@ set :: Int -> Int -> Int -> Tree -> Tree
 set l r x = change l r (Set x)
 
 sum :: Int -> Int -> Tree -> Int
-sum _ _ Nothing = 0
-sum l r (Just n')
-  | r <= 0 || l >= n ^. nLength = 0
-  | l <= 0 && r >= n ^. nLength = n ^. nSum
-  | otherwise = let d = length $ n ^. nLeft
-                 in sum l r (n ^. nLeft)
-                  + sum (l - d) (r - d) (n ^. nRight)
-  where
-    n = normalize n'
+sum l r t =
+  let (tlm, _) = splitIndex (r + 1) t
+      (_, tm) = splitIndex l tlm
+   in sumFull tm
 
 reverse :: Int -> Int -> Tree -> Tree
 reverse l r t =
@@ -144,8 +141,12 @@ sumFull (Just n) = case n ^. nPendChange of
   Add x -> x * n ^. nLength + n ^. nSum
   Set x -> x * n ^. nLength
 
-length :: Maybe Node -> Int
+length :: Tree -> Int
 length = maybe 0 (^. nLength)
 
-height :: Maybe Node -> Int
+height :: Tree -> Int
 height = maybe 0 (^. nHeight)
+
+linearize :: Tree -> [Int]
+linearize Nothing = []
+linearize (Just n) = linearize (n ^. nLeft) ++ (n ^. nx) : linearize (n ^. nRight)
