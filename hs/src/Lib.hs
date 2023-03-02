@@ -1,24 +1,21 @@
-{-# LANGUAGE TemplateHaskell #-}
 module Lib {-(Tree, insert, delete, add, set, sum, reverse)-} where
 
-import           Control.Lens hiding (set)
-import           Prelude      hiding (length, reverse, sum)
+import           Prelude hiding (length, reverse, sum)
 
 data PendingChange = Add Int | Set Int
   deriving (Eq, Show)
 
 data Node = Node
-  { _nx          :: Int,
-    _nLength     :: Int,
-    _nHeight     :: Int,
-    _nSum        :: Int,
-    _nPendRev    :: Bool,
-    _nPendChange :: PendingChange,
-    _nLeft       :: Maybe Node,
-    _nRight      :: Maybe Node
+  { nx          :: Int,
+    nLength     :: Int,
+    nHeight     :: Int,
+    nSum        :: Int, -- Сумма до применения изменений
+    nPendRev    :: Bool,
+    nPendChange :: PendingChange,
+    nLeft       :: Maybe Node,
+    nRight      :: Maybe Node
   }
   deriving (Eq, Show)
-makeLenses ''Node
 
 type Tree = Maybe Node
 
@@ -75,13 +72,13 @@ splitIndex :: Int -> Tree -> (Tree, Tree)
 splitIndex _ Nothing = (Nothing, Nothing)
 splitIndex i (Just n')
   | i <= 0 = (Nothing, Just n)
-  | i >= n ^. nLength = (Just n, Nothing)
-  | i <= length (n ^. nLeft) =
-    let (l, r) = splitIndex i $ n ^. nLeft
-     in (l, Just . rebalance $ node (n ^. nx) r (n ^. nRight))
+  | i >= nLength n = (Just n, Nothing)
+  | i <= length (nLeft n) =
+    let (l, r) = splitIndex i $ nLeft n
+     in (l, Just . rebalance $ node (nx n) r (nRight n))
   | otherwise =
-    let (l, r) = splitIndex (i - length (n ^. nLeft) - 1) $ n ^. nRight
-     in (Just . rebalance $ node (n ^. nx) (n ^. nLeft) l, r)
+    let (l, r) = splitIndex (i - length (nLeft n) - 1) $ nRight n
+     in (Just . rebalance $ node (nx n) (nLeft n) l, r)
   where
     n = normalize n'
 
@@ -89,7 +86,7 @@ splitIndex i (Just n')
 insertFirst :: Int -> Tree -> Node
 insertFirst x Nothing = node x Nothing Nothing
 insertFirst x (Just n') = let n = normalize n' in rebalance $
-  node (n ^. nx) (Just . insertFirst x $ n ^. nLeft) (n ^. nRight)
+  node (nx n) (Just . insertFirst x $ nLeft n) (nRight n)
 
 -- O(log L)
 deleteFirst :: Tree -> Tree
@@ -98,17 +95,19 @@ deleteFirst (Just n) = snd $ extractFirst n
 
 -- O(log L)
 extractFirst :: Node -> (Int, Tree)
-extractFirst n' = let n = normalize n' in case n ^. nLeft of
-  Nothing -> (n ^. nx, n ^. nRight)
-  Just n'' -> (\t -> Just . rebalance $ node (n ^. nx) t (n ^. nRight)) <$> extractFirst n''
+extractFirst n' = let n = normalize n' in case nLeft n of
+  Nothing -> (nx n, nRight n)
+  Just n'' -> (\t -> Just . rebalance $ node (nx n) t (nRight n)) <$> extractFirst n''
 
 -- O(1)
 reverseFull :: Tree -> Tree
-reverseFull = fmap $ \n -> n & over nPendRev not
+reverseFull = fmap $ \n -> Node (nx n) (nLength n) (nHeight n)
+  (nSum n) (not $ nPendRev n) (nPendChange n) (nLeft n) (nRight n)
 
 -- O(1)
 changeFull :: PendingChange -> Tree -> Tree
-changeFull pc = fmap $ \n -> n & over nPendChange (pc <>)
+changeFull pc = fmap $ \n -> Node (nx n) (nLength n) (nHeight n)
+  (nSum n) (nPendRev n) (pc <> nPendChange n) (nLeft n) (nRight n)
 
 rebalance :: Node -> Node
 rebalance = id -- undefined
@@ -118,14 +117,14 @@ normalize :: Node -> Node
 normalize = normalizeRev . normalizeChange
   where
     normalizeRev n
-      | n ^. nPendRev = node (n ^. nx) (reverseFull $ n ^. nRight) (reverseFull $ n ^. nLeft)
+      | nPendRev n = node (nx n) (reverseFull $ nRight n) (reverseFull $ nLeft n)
       | otherwise = n
 
     normalizeChange n =
-      let pc = n ^. nPendChange
-       in node (n ^. nx)
-          (changeFull pc $ n ^. nLeft)
-          (changeFull pc $ n ^. nRight)
+      let pc = nPendChange n
+       in node (nx n)
+          (changeFull pc $ nLeft n)
+          (changeFull pc $ nRight n)
 
 node :: Int -> Tree -> Tree -> Node
 node x left right =
@@ -137,16 +136,16 @@ node x left right =
 
 sumFull :: Tree -> Int
 sumFull Nothing = 0
-sumFull (Just n) = case n ^. nPendChange of
-  Add x -> x * n ^. nLength + n ^. nSum
-  Set x -> x * n ^. nLength
+sumFull (Just n) = case nPendChange n of
+  Add x -> x * nLength n + nSum n
+  Set x -> x * nLength n
 
 length :: Tree -> Int
-length = maybe 0 (^. nLength)
+length = maybe 0 nLength
 
 height :: Tree -> Int
-height = maybe 0 (^. nHeight)
+height = maybe 0 nHeight
 
 linearize :: Tree -> [Int]
-linearize Nothing = []
-linearize (Just n) = linearize (n ^. nLeft) ++ (n ^. nx) : linearize (n ^. nRight)
+linearize Nothing  = []
+linearize (Just n) = linearize (nLeft n) ++ nx n : linearize (nRight n)
