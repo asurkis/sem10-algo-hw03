@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc bbfac8ac1609e606b2234e7b46a6eca7cbf090a554deb5a5eb221f5a2794d7b4 # shrinks to (array, queries) = ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 499820973, 974487459, 29099907, 988731990, 7657043, 315401447, 764001370, 558942513, 431635658, 903628074, 560264565, 247001388, 169625545, 137626670, 586730554, 394647445, 312056202, 276391752, 155942888, 534343408, 380930855, 689715347, 450810672, 133247633, 34812453, 430614498, 468716992, 482631429, 798271709, 589928025, 115141098, 331702970, 262070023, 750625731, 903384938, 100283019, 980283399, 418587930], [(false, 180733352, 44, 51), (false, 532237559, 7, 67), (true, 603334852, 36, 53), (true, 963500809, 26, 40), (true, 635383862, 29, 37), (true, 925938744, 53, 62), (true, 718881559, 47, 72), (true, 296425180, 31, 37), (true, 621449037, 16, 51), (true, 150330389, 21, 36), (true, 537566546, 2, 66), (true, 958246145, 6, 47), (false, 376402969, 12, 62)])

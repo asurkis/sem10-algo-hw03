@@ -1,4 +1,7 @@
 pub mod task02;
+pub mod task04;
+pub mod task05;
+pub mod task06;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
