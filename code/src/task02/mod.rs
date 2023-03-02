@@ -2,14 +2,43 @@
 #[path = "./tests.rs"]
 mod tests;
 
-const MOD: u64 = 100; // 1_000_000_007;
+pub const MOD: u64 = 1_000_000_007;
+
+#[derive(Debug)]
+pub struct Tree {
+    root: Node,
+    time: usize,
+}
+
+impl Tree {
+    pub fn new(slice: &[u64]) -> Self {
+        Self {
+            root: Node::new(slice),
+            time: 1,
+        }
+    }
+
+    pub fn product(&mut self, l: usize, r: usize) -> u64 {
+        self.root.product(l, r + 1)
+    }
+
+    pub fn update(&mut self, l: usize, r: usize, x: u64) {
+        self.root.update(l, r + 1, x, self.time);
+        self.time += 1;
+    }
+}
 
 #[derive(Debug)]
 struct Node {
+    // Произведение на всём поддереве, поддерживаем инвариант:
+    // при выходе из поддерева произведение на нём актуально.
     product: u64,
-    pending_x: u64,
-    pending_t: usize,
-    len: usize,
+    len: usize, // Размер поддерева, нужен для быстрого подсчёта произведения
+
+    // Последний не отправленный ниже по дереву запрос, покрывающий всё дерево
+    pending_x: u64,   // Значение, которое нужно присвоить
+    pending_t: usize, // Момент, когда этот запрос пришёл
+
     left: Option<Box<Node>>,
     right: Option<Box<Node>>,
 }
@@ -53,22 +82,23 @@ impl Node {
         }
     }
 
-    fn update_full(&mut self, x: u64, t: usize) {
-        // O(log n)
+    fn update_pending(&mut self, x: u64, t: usize) {
+        // O(1)
         if t > self.pending_t {
             self.product = calc_pow(x, self.len as u64);
             self.pending_x = x;
             self.pending_t = t;
         }
+        // Произведение на всём поддереве актуально
     }
 
     fn push(&mut self) {
-        // O(1)
+        // O(log n)
         for node in &mut self.left {
-            node.update_full(self.pending_x, self.pending_t);
+            node.update_pending(self.pending_x, self.pending_t);
         }
         for node in &mut self.right {
-            node.update_full(self.pending_x, self.pending_t);
+            node.update_pending(self.pending_x, self.pending_t);
         }
         self.pending_x = 0;
         self.pending_t = 0;
@@ -82,23 +112,29 @@ impl Node {
         if l == 0 && r >= self.len {
             return self.product; // O(1)
         }
-        // O(log n), по свойству дерева отрезков
+
         let mut result = 1;
+        // Помимо подсчёта запроса обновляем поддерево
+        self.product = 1;
+
+        // Разбиение на целые поддеревья, O(log n) по свойству дерева отрезков
         for node in &mut self.left {
             result = node.product(l, r);
             l -= node.len.min(l);
             r -= node.len.min(r);
+            self.product = node.product;
         }
         for node in &mut self.right {
             result *= node.product(l, r);
+            self.product = self.product * node.product % MOD;
         }
+        // Произведение на всём поддереве актуально
         result % MOD
     }
 
     fn update(&mut self, mut l: usize, mut r: usize, mut x: u64, mut t: usize) {
         if t < self.pending_t {
-            // O(1)
-            x = self.pending_x;
+            x = self.pending_x; // O(1)
             t = self.pending_t;
         } else {
             self.push(); // O(1)
@@ -108,11 +144,12 @@ impl Node {
         }
         if l == 0 && r >= self.len {
             // O(log n), не чаще 1 раза на запрос
-            self.update_full(x, t);
+            self.update_pending(x, t);
             return;
         }
-        // O(log n) по свойству дерева отрезков
+
         self.product = 1;
+        // Разбиение на целые поддеревья, O(log n) по свойству дерева отрезков
         for node in &mut self.left {
             node.update(l, r, x, t);
             l -= node.len.min(l);
@@ -121,32 +158,8 @@ impl Node {
         }
         for node in &mut self.right {
             node.update(l, r, x, t);
-            self.product *= node.product;
+            self.product = self.product * node.product % MOD;
         }
-        self.product %= MOD;
-    }
-}
-
-#[derive(Debug)]
-pub struct Tree {
-    root: Node,
-    time: usize,
-}
-
-impl Tree {
-    pub fn new(slice: &[u64]) -> Self {
-        Self {
-            root: Node::new(slice),
-            time: 1,
-        }
-    }
-
-    pub fn product(&mut self, l: usize, r: usize) -> u64 {
-        self.root.product(l, r + 1)
-    }
-
-    pub fn update(&mut self, l: usize, r: usize, x: u64) {
-        self.root.update(l, r + 1, x, self.time);
-        self.time += 1;
+        // Произведение на всём поддереве актуально
     }
 }
