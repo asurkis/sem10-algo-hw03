@@ -1,0 +1,13 @@
+[package]
+name = "code"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+proptest = "1.1.0"
+
+#[dependencies.proptest]
+#git = "https://github.com/proptest-rs/proptest.git"
+#rev = "75c749ee503d4ba7285b1aad4eb7440052a830e7"
