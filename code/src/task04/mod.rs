@@ -42,7 +42,7 @@ impl Solution {
     }
 
     pub fn result(mut self) -> Vec<i64> {
-        // Добиваем оставшиеся, O(k)
+        // Добиваем оставшиеся, O(min(n, k))
         if self.rev {
             for &x in self.last.iter().rev() {
                 self.fixed.push(x);
