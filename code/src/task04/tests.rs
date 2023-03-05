@@ -2,10 +2,11 @@ use super::*;
 
 #[test]
 fn test1() {
-    let mut solution = Solution::new();
+    let k = 3;
+    let mut solution = Solution::new(k);
     let mut naive = vec![];
 
-    let mut queries = vec![
+    let queries = vec![
         (false, 1),
         (false, 2),
         (false, 3),
@@ -19,8 +20,7 @@ fn test1() {
             solution.append(x);
             naive.push(x);
         } else {
-            let k = x.abs() as usize;
-            solution.rev(k);
+            solution.rev();
             let k = naive.len().min(k);
             let len = naive.len();
             naive[len - k..].reverse();
