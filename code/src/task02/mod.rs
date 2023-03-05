@@ -5,16 +5,22 @@ mod tests;
 pub const MOD: u64 = 1_000_000_007;
 
 #[derive(Debug)]
-pub struct Tree {
+pub struct Solution {
+    len: usize,
     root: Node,
-    time: usize,
 }
 
-impl Tree {
-    pub fn new(slice: &[u64]) -> Self {
+impl Solution {
+    pub fn new(mut vec: Vec<u64>) -> Self {
+        let len = vec.len();
+        // Добиваем до 2^k, очевидно,
+        // n = Theta(2^ceil(log2(n)))
+        while vec.len() & (vec.len() - 1) != 0 {
+            vec.push(1);
+        }
         Self {
-            root: Node::new(slice),
-            time: 1,
+            len,
+            root: Node::new(&vec),
         }
     }
 
@@ -23,39 +29,45 @@ impl Tree {
     }
 
     pub fn update(&mut self, l: usize, r: usize, x: u64) {
-        self.root.update(l, r + 1, x, self.time);
-        self.time += 1;
+        // Записываем x * 2^k в список, пока 2^k не превысит длину
+        // Очевидно, O(log n)
+        let mut list = List {
+            head: x,
+            tail: None,
+        };
+        let mut k = 0;
+        while 1 << k < self.len {
+            let head = list.head * list.head % MOD;
+            list = List {
+                head,
+                tail: Some(Rc::new(list)),
+            };
+            k += 1;
+        }
+        dbg!(&list);
+        self.root.update(l, r + 1, Rc::new(list));
     }
+}
+
+use std::rc::Rc;
+
+// Одновсязный список
+#[derive(Debug, Clone)]
+struct List {
+    head: u64,
+    tail: Option<Rc<List>>,
 }
 
 #[derive(Debug)]
 struct Node {
     // Произведение на всём поддереве, поддерживаем инвариант:
     // при выходе из поддерева произведение на нём актуально.
-    product: u64,
-    len: usize, // Размер поддерева, нужен для быстрого подсчёта произведения
-
-    // Последний не отправленный ниже по дереву запрос, покрывающий всё дерево
-    pending_x: u64,   // Значение, которое нужно присвоить
-    pending_t: usize, // Момент, когда этот запрос пришёл
-
+    // Последний не отправленный ниже по дереву запрос, покрывающий всё дерево.
+    // Голова списка --- произведение на поддереве.
+    pending: Rc<List>,
+    len: usize,
     left: Option<Box<Node>>,
     right: Option<Box<Node>>,
-}
-
-fn calc_pow(x: u64, n: u64) -> u64 {
-    // O(log n)
-    if n == 0 {
-        1
-    } else {
-        let xx = calc_pow(x, n / 2);
-        let xx = xx * xx % MOD;
-        if n % 2 == 0 {
-            xx
-        } else {
-            xx * x % MOD
-        }
-    }
 }
 
 impl Node {
@@ -67,99 +79,90 @@ impl Node {
             let left = Self::new(&slice[..mid]);
             let right = Self::new(&slice[mid..]);
             (
-                left.product * right.product % MOD,
+                left.pending.head * right.pending.head,
                 Some(Box::new(left)),
                 Some(Box::new(right)),
             )
         };
         Self {
-            product,
-            pending_x: 0,
-            pending_t: 0,
+            pending: Rc::new(List {
+                head: product % MOD,
+                tail: None,
+            }),
             len: slice.len(),
             left,
             right,
         }
     }
 
-    fn update_pending(&mut self, x: u64, t: usize) {
-        // O(1)
-        if t > self.pending_t {
-            self.product = calc_pow(x, self.len as u64);
-            self.pending_x = x;
-            self.pending_t = t;
-        }
-        // Произведение на всём поддереве актуально
-    }
-
     fn push(&mut self) {
-        // O(log n)
-        for node in &mut self.left {
-            node.update_pending(self.pending_x, self.pending_t);
+        // O(1)
+        if let Some(tail) = &self.pending.tail {
+            if let Some(n) = &mut self.left {
+                n.pending = tail.clone();
+            }
+            if let Some(n) = &mut self.right {
+                n.pending = tail.clone();
+            }
         }
-        for node in &mut self.right {
-            node.update_pending(self.pending_x, self.pending_t);
-        }
-        self.pending_x = 0;
-        self.pending_t = 0;
     }
 
-    fn product(&mut self, mut l: usize, mut r: usize) -> u64 {
-        self.push(); // O(1)
-        if l >= self.len || r == 0 {
-            return 1; // O(1)
+    fn product(&mut self, l: usize, r: usize) -> u64 {
+        // Спуск по дереву отрезков --- O(log n) на запрос
+        self.push();
+        if r == 0 || l >= self.len {
+            return 1;
         }
         if l == 0 && r >= self.len {
-            return self.product; // O(1)
+            return self.pending.head;
         }
-
-        let mut result = 1;
-        // Помимо подсчёта запроса обновляем поддерево
-        self.product = 1;
-
-        // Разбиение на целые поддеревья, O(log n) по свойству дерева отрезков
-        for node in &mut self.left {
-            result = node.product(l, r);
-            l -= node.len.min(l);
-            r -= node.len.min(r);
-            self.product = node.product;
-        }
-        for node in &mut self.right {
-            result *= node.product(l, r);
-            self.product = self.product * node.product % MOD;
-        }
-        // Произведение на всём поддереве актуально
-        result % MOD
-    }
-
-    fn update(&mut self, mut l: usize, mut r: usize, mut x: u64, mut t: usize) {
-        if t < self.pending_t {
-            x = self.pending_x; // O(1)
-            t = self.pending_t;
+        let left = if let Some(n) = &mut self.left {
+            n.product(l, r)
         } else {
-            self.push(); // O(1)
-        }
-        if l >= self.len || r == 0 {
-            return; // O(1)
+            1
+        };
+        let right = if let Some(n) = &mut self.right {
+            let llen = self.len / 2;
+            n.product(l.max(llen) - llen, r.max(llen) - llen)
+        } else {
+            1
+        };
+        left * right % MOD
+    }
+
+    fn update(&mut self, l: usize, r: usize, x: Rc<List>) {
+        // Спуск по дереву отрезков, в каждой вершине действия за O(1),
+        // всего --- O(log n) на запрос
+        self.push();
+        if r == 0 || l >= self.len {
+            return;
         }
         if l == 0 && r >= self.len {
-            // O(log n), не чаще 1 раза на запрос
-            self.update_pending(x, t);
+            self.pending = x;
             return;
         }
 
-        self.product = 1;
-        // Разбиение на целые поддеревья, O(log n) по свойству дерева отрезков
-        for node in &mut self.left {
-            node.update(l, r, x, t);
-            l -= node.len.min(l);
-            r -= node.len.min(r);
-            self.product = node.product;
-        }
-        for node in &mut self.right {
-            node.update(l, r, x, t);
-            self.product = self.product * node.product % MOD;
-        }
-        // Произведение на всём поддереве актуально
+        let left = if let Some(n) = &mut self.left {
+            n.update(l, r, x.tail.clone().unwrap());
+            n.pending.head
+        } else {
+            1
+        };
+        let right = if let Some(n) = &mut self.right {
+            let llen = self.len / 2;
+            n.update(
+                l.max(llen) - llen,
+                r.max(llen) - llen,
+                x.tail.clone().unwrap(),
+            );
+            n.pending.head
+        } else {
+            1
+        };
+
+        self.pending = Rc::new(List {
+            head: left * right % MOD,
+            tail: None,
+        });
     }
 }
